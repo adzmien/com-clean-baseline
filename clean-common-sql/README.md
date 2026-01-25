@@ -37,15 +37,18 @@ Where:
 
 | Command | Purpose | Safe for Prod? |
 |---------|---------|----------------|
-| `./gradlew flywayInfo` | Check migration status | ✅ Yes |
-| `./gradlew flywayValidate` | Verify migration integrity | ✅ Yes |
+| `./gradlew flywayInfo` | Check production migration status | ✅ Yes |
+| `./gradlew flywayInfoDummy` | Check dummy migration status | ℹ️ Dev only |
+| `./gradlew flywayValidate` | Verify production migration integrity | ✅ Yes |
+| `./gradlew flywayValidateDummy` | Verify dummy migration integrity | ℹ️ Dev only |
 | `./gradlew flywayMigrate` | Apply all migrations (DDL+DML+dummy) | ⚠️ No |
 | `./gradlew flywayMigrateDdlDml` | Apply DDL+DML only (no dummy) | ✅ **Recommended** |
-| `./gradlew flywayMigrateDummy` | Apply dummy data only | ❌ No |
-| `./gradlew flywayRepair` | Fix migration issues | ⚠️ Careful |
-| `./gradlew flywayBaseline` | Initialize migration tracking | ⚠️ Careful |
+| `./gradlew flywayMigrateDummy` | Apply dummy data only (separate history) | ❌ No |
+| `./gradlew flywayRepair` | Fix production migration issues | ⚠️ Careful |
+| `./gradlew flywayBaseline` | Initialize production migration tracking | ⚠️ Careful |
 | `./gradlew flywayRollback` | Interactive rollback by date | ⚠️ Careful |
 | `./gradlew flywayClean` | Drop all database objects | ❌ **NEVER** |
+| `./gradlew flywayCleanDummy` | Drop dummy history table only | ℹ️ Dev only |
 
 **Default Configuration:**
 - Database: MariaDB
@@ -92,6 +95,59 @@ flyway.url=jdbc:mariadb://localhost:3306/clean_dev
 flyway.user=root
 flyway.password=your_password_here
 flyway.cleanDisabled=true
+```
+
+## Understanding Migration History Tables
+
+This project uses **two separate Flyway schema history tables** to keep production and test data migrations isolated:
+
+### Production History: `flyway_schema_history`
+- Tracks DDL and DML migrations from `db/migration/sql/ddl-dml/`
+- Used by production deployments
+- Accessed by: `flywayMigrate`, `flywayMigrateDdlDml`, `flywayInfo`, `flywayValidate`
+- **Critical:** Never modify this table manually
+
+### Dummy/Test History: `flyway_schema_history_dummy`
+- Tracks dummy data migrations from `db/migration/sql/dummy/`
+- Used only in development/test environments
+- Accessed by: `flywayMigrateDummy`, `flywayInfoDummy`, `flywayValidateDummy`
+- Safe to reset using `flywayCleanDummy` task
+
+### Why Two Tables?
+
+**Problem:** Running dummy migrations writes test data records into the production migration history, causing:
+- Polluted migration history with non-production entries
+- Confusion about which migrations are actually deployed in production
+- Risk of accidentally deploying test data to production
+
+**Solution:** Dummy migrations use a separate history table (`flyway_schema_history_dummy`), keeping:
+- Production history clean and auditable
+- Test data migrations tracked separately
+- Clear separation of concerns
+
+### Checking Migration Status
+
+```bash
+# Check production migrations
+./gradlew flywayInfo
+# Shows: flyway_schema_history entries (DDL/DML only)
+
+# Check dummy migrations
+./gradlew flywayInfoDummy
+# Shows: flyway_schema_history_dummy entries (test data only)
+```
+
+### Best Practice
+
+**For Production/Staging:**
+```bash
+./gradlew flywayMigrateDdlDml  # Only writes to flyway_schema_history
+```
+
+**For Development:**
+```bash
+./gradlew flywayMigrateDdlDml  # First apply production migrations
+./gradlew flywayMigrateDummy   # Then apply dummy data (separate history)
 ```
 
 ## Migration Commands
@@ -214,10 +270,22 @@ Deploy dummy/test data only (development sample data):
 ./gradlew flywayMigrateDummy
 ```
 
+**What it does:**
+- Applies migrations from `db/migration/sql/dummy/` folder
+- Records history in **separate table**: `flyway_schema_history_dummy`
+- Does NOT pollute production migration history
+- Idempotent: Safe to run multiple times
+
 **Use cases:**
 - Load test data in development environment
+- Refresh sample data during development
 - Populate staging with sample data
 - **Never run in production**
+
+**Check status:**
+```bash
+./gradlew flywayInfoDummy  # View dummy migration history
+```
 
 #### 2. **Migrate DDL + DML Only**
 Deploy DDL and DML only (excludes dummy data):
@@ -226,18 +294,72 @@ Deploy DDL and DML only (excludes dummy data):
 ./gradlew flywayMigrateDdlDml
 ```
 
+**What it does:**
+- Applies migrations from `db/migration/sql/ddl-dml/` folder only
+- Records history in **production table**: `flyway_schema_history`
+- Safe for production deployment
+- Excludes all test/sample data
+
 **Use cases:**
-- Production deployments without test data
+- Production deployments
 - UAT/Staging deployments (production-like)
-- Safe deployment excluding sample data
+- Any environment where test data should NOT be loaded
+
+**Check status:**
+```bash
+./gradlew flywayInfo  # View production migration history
+```
+
+#### 3. **View Dummy Migration Status**
+Check the status of dummy migrations:
+
+```bash
+./gradlew flywayInfoDummy
+```
+
+**Shows:**
+- Applied dummy migrations (version, description, timestamp)
+- Pending dummy migrations
+- Reads from `flyway_schema_history_dummy` table
+
+#### 4. **Validate Dummy Migrations**
+Verify dummy migration integrity:
+
+```bash
+./gradlew flywayValidateDummy
+```
+
+**Checks:**
+- Checksum validation for applied dummy migrations
+- Detects if dummy migration files were modified
+- Reads from `flyway_schema_history_dummy` table
+
+#### 5. **Clean Dummy History**
+Reset dummy migration tracking (development only):
+
+```bash
+./gradlew flywayCleanDummy
+```
+
+**WARNING:** This drops the `flyway_schema_history_dummy` table only. It does NOT:
+- Drop the main `flyway_schema_history` table
+- Remove actual data from TBL_CLEAN_USER or other tables
+- Affect production migration history
+
+**Use when:**
+- Resetting development environment
+- Starting fresh with dummy migrations
+- Cleaning up after testing
 
 ### Command Comparison
 
-| Command | DDL/DML | Dummy | Production Safe |
-|---------|---------|-------|-----------------|
-| `flywayMigrate` | ✅ | ✅ | ⚠️ No (includes dummy) |
-| `flywayMigrateDummy` | ❌ | ✅ | ❌ No (test data) |
-| `flywayMigrateDdlDml` | ✅ | ❌ | ✅ **Recommended** |
+| Command | DDL/DML | Dummy | History Table | Production Safe |
+|---------|---------|-------|---------------|-----------------|
+| `flywayMigrate` | ✅ | ✅ | Both tables | ⚠️ No (includes dummy) |
+| `flywayMigrateDummy` | ❌ | ✅ | `flyway_schema_history_dummy` | ❌ No (test data) |
+| `flywayMigrateDdlDml` | ✅ | ❌ | `flyway_schema_history` | ✅ **Recommended** |
+| `flywayInfo` | ✅ | ❌ | `flyway_schema_history` | ✅ Yes |
+| `flywayInfoDummy` | ❌ | ✅ | `flyway_schema_history_dummy` | ℹ️ Dev only |
 
 ## Rollback System
 
@@ -450,6 +572,90 @@ gradle wrapper --gradle-version 8.5
 # Then try again
 ./gradlew flywayInfo
 ```
+
+#### 7. **Dummy Migrations Appearing in Production History**
+
+**Symptoms:**
+- `flyway_schema_history` contains entries like `R__dev_sample_users`
+- Production migration history polluted with test data entries
+
+**Cause:** Used `flywayMigrate` instead of `flywayMigrateDdlDml`
+
+**Prevention:**
+Always use the correct command for each environment:
+```bash
+# Production/Staging - CORRECT
+./gradlew flywayMigrateDdlDml
+
+# Development - Load dummy separately
+./gradlew flywayMigrateDdlDml  # First
+./gradlew flywayMigrateDummy   # Then (uses separate history table)
+```
+
+**Cleanup if already polluted:**
+
+**Option A: Repair (if only dummy entries are affected)**
+```bash
+# 1. Check what's in the history
+./gradlew flywayInfo
+
+# 2. Manually remove dummy migration entries
+mysql -u root -p clean_dev
+DELETE FROM flyway_schema_history WHERE description LIKE '%dummy%' OR description LIKE '%sample%';
+exit
+
+# 3. Verify cleanup
+./gradlew flywayInfo
+```
+
+**Option B: Fresh start (development only)**
+```bash
+# 1. Backup data if needed
+mysqldump -u root -p clean_dev > backup.sql
+
+# 2. Drop and recreate schema
+mysql -u root -p
+DROP DATABASE clean_dev;
+CREATE DATABASE clean_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+exit
+
+# 3. Reapply migrations correctly
+./gradlew flywayMigrateDdlDml  # Production migrations
+./gradlew flywayMigrateDummy   # Dummy migrations (separate history)
+
+# 4. Verify
+./gradlew flywayInfo       # Should show only DDL/DML
+./gradlew flywayInfoDummy  # Should show only dummy
+```
+
+#### 8. **Two History Tables - Which One to Check?**
+
+**Question:** "I see both `flyway_schema_history` and `flyway_schema_history_dummy`. Which should I check?"
+
+**Answer:**
+
+**For production migration status:**
+```bash
+./gradlew flywayInfo  # Reads: flyway_schema_history
+```
+
+**For dummy/test data status:**
+```bash
+./gradlew flywayInfoDummy  # Reads: flyway_schema_history_dummy
+```
+
+**Verify table contents directly:**
+```sql
+-- Production migrations
+SELECT * FROM flyway_schema_history ORDER BY installed_rank;
+
+-- Dummy migrations
+SELECT * FROM flyway_schema_history_dummy ORDER BY installed_rank;
+```
+
+**Expected separation:**
+- `flyway_schema_history` - Contains only V{YYMMDD}XXX migrations from ddl-dml/
+- `flyway_schema_history_dummy` - Contains only R__* migrations from dummy/
 
 ## SQL Best Practices
 

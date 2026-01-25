@@ -116,14 +116,38 @@ DROP PROCEDURE IF EXISTS generate_test_users;
 ## Deployment
 
 **NEVER deploy to production.** Use only in development/test:
+
 ```bash
+# Apply dummy migrations (uses separate history table)
 ./gradlew flywayMigrateDummy
-./gradlew flywayMigrate  # Includes dummy data
+
+# Check dummy migration status
+./gradlew flywayInfoDummy
+
+# Validate dummy migrations
+./gradlew flywayValidateDummy
 ```
+
+**Migration History Tables:**
+- Dummy migrations → `flyway_schema_history_dummy` (isolated tracking)
+- Production migrations → `flyway_schema_history` (clean, production-only)
 
 **For production, exclude dummy data:**
 ```bash
 ./gradlew flywayMigrateDdlDml  # Recommended for production
+```
+
+**Best Practice - Development Environment:**
+```bash
+# First apply production migrations
+./gradlew flywayMigrateDdlDml
+
+# Then apply dummy data (separate history table)
+./gradlew flywayMigrateDummy
+
+# Verify separation
+./gradlew flywayInfo       # Production migrations only
+./gradlew flywayInfoDummy  # Dummy migrations only
 ```
 
 ## Guidelines

@@ -31,8 +31,10 @@ flyway {
     password = project.findProperty('flyway.password') ?: 'user'
     schemas = ['clean_dev']
     locations = [
-        'classpath:db/migration/sql/ddl-dml',
-        'classpath:db/migration/sql/dummy'
+        'classpath:db/migration/sql/ddl-dml'
+        // Note: 'dummy' location removed from base config
+        // Dummy migrations only accessible via flywayMigrateDummy/flywayInfoDummy tasks
+        // This ensures production commands (flywayInfo, flywayMigrate) never touch dummy data
     ]
     baselineOnMigrate = true
     validateOnMigrate = true
@@ -119,18 +121,109 @@ task flywayRollback {
 // Custom task to deploy dummy/test data migrations only
 task flywayMigrateDummy {
     group = 'flyway'
-    description = 'Executes dummy migrations only (test/development sample data)'
+    description = 'Executes dummy migrations only (test/development sample data) - Uses separate history table'
 
     doLast {
         println "Deploying dummy/test data migrations..."
+        println "NOTE: Using separate history table 'flyway_schema_history_dummy' for tracking"
+
         def originalLocations = flyway.locations
+        def originalTable = flyway.table
+
+        // Configure separate history table for dummy migrations
         flyway.locations = ['classpath:db/migration/sql/dummy']
+        flyway.table = 'flyway_schema_history_dummy'
 
         try {
             tasks.flywayMigrate.actions.each { it.execute(tasks.flywayMigrate) }
             println "Dummy data migrations completed successfully"
+            println "Migration history recorded in: flyway_schema_history_dummy"
         } finally {
             flyway.locations = originalLocations
+            flyway.table = originalTable
+        }
+    }
+}
+
+// Custom task to view dummy migration status
+task flywayInfoDummy {
+    group = 'flyway'
+    description = 'Shows status of dummy migrations (reads from flyway_schema_history_dummy table)'
+
+    doLast {
+        println "Checking dummy migration status..."
+        println "Reading from table: flyway_schema_history_dummy"
+
+        def originalTable = flyway.table
+        def originalLocations = flyway.locations
+
+        try {
+            flyway.table = 'flyway_schema_history_dummy'
+            flyway.locations = ['classpath:db/migration/sql/dummy']
+            tasks.flywayInfo.actions.each { it.execute(tasks.flywayInfo) }
+        } finally {
+            flyway.table = originalTable
+            flyway.locations = originalLocations
+        }
+    }
+}
+
+// Custom task to validate dummy migrations
+task flywayValidateDummy {
+    group = 'flyway'
+    description = 'Validates dummy migrations (checks flyway_schema_history_dummy table)'
+
+    doLast {
+        println "Validating dummy migrations..."
+        println "Reading from table: flyway_schema_history_dummy"
+
+        def originalTable = flyway.table
+        def originalLocations = flyway.locations
+
+        try {
+            flyway.table = 'flyway_schema_history_dummy'
+            flyway.locations = ['classpath:db/migration/sql/dummy']
+            tasks.flywayValidate.actions.each { it.execute(tasks.flywayValidate) }
+        } finally {
+            flyway.table = originalTable
+            flyway.locations = originalLocations
+        }
+    }
+}
+
+// Custom task to clean dummy migration history (does NOT clean the main history table)
+task flywayCleanDummy {
+    group = 'flyway'
+    description = 'Removes dummy history table (flyway_schema_history_dummy only)'
+
+    doLast {
+        def console = System.console()
+        if (console == null) {
+            throw new GradleException("Cannot get console instance. Please run from a terminal.")
+        }
+
+        def confirmation = console.readLine("This will DROP the flyway_schema_history_dummy table. Continue? (yes/no): ")
+        if (confirmation?.toLowerCase() != 'yes') {
+            println "Operation cancelled."
+            return
+        }
+
+        println "Cleaning dummy migration history..."
+
+        // Use direct SQL to drop just the history table
+        def sql = new groovy.sql.Sql(
+            java.sql.DriverManager.getConnection(
+                flyway.url,
+                flyway.user,
+                flyway.password
+            )
+        )
+
+        try {
+            sql.execute("DROP TABLE IF EXISTS `${flyway.schemas[0]}`.`flyway_schema_history_dummy`")
+            println "Dummy history table dropped successfully"
+        } finally {
+            sql.close()
         }
     }
 }
