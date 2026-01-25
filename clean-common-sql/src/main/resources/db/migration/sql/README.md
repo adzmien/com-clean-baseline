@@ -4,18 +4,13 @@ This directory contains Flyway migration scripts organized by type for better ma
 
 ## Directory Structure
 
-### `/ddl` - Data Definition Language
-Contains schema definition migrations:
+### `/ddl-dml` - Data Definition & Manipulation Language
+Contains both schema definitions and data manipulation migrations:
 - Table creation and modifications
 - Index definitions
 - Constraint definitions
 - View definitions
 - Stored procedure definitions
-
-**Deployment:** Production-safe, can be deployed independently
-
-### `/dml` - Data Manipulation Language
-Contains data manipulation migrations:
 - INSERT statements for reference/master data
 - UPDATE statements for data corrections
 - DELETE statements for data cleanup
@@ -56,8 +51,8 @@ Where:
 ```
 
 ### Examples:
-- `ddl/V260125001__create_users_table.sql`
-- `dml/V260125002__insert_user_roles.sql`
+- `ddl-dml/V260125001__create_users_table.sql`
+- `ddl-dml/V260125002__insert_user_roles.sql`
 - `dummy/V260125003__dev_sample_users.sql`
 
 ## Execution Order
@@ -68,17 +63,15 @@ Flyway executes migrations from all folders in version order:
 3. V260125003 (from any folder)
 
 Use custom tasks to control which folders are deployed:
-- `./gradlew flywayMigrateDdl` - DDL only
-- `./gradlew flywayMigrateDml` - DML only
 - `./gradlew flywayMigrateDummy` - Dummy data only
 - `./gradlew flywayMigrateDdlDml` - DDL + DML (production recommended)
-- `./gradlew flywayMigrate` - All folders
+- `./gradlew flywayMigrate` - All folders (includes dummy)
 
 ## Best Practices
 
-1. **Separate Concerns** - Keep DDL, DML, and dummy data in separate folders
+1. **Separate Concerns** - Keep production migrations (DDL/DML) separate from dummy data
 2. **Production Safety** - Use `flywayMigrateDdlDml` for production deployments
-3. **Version Numbers** - Coordinate version numbers across folders to control execution order
+3. **Version Numbers** - Use sequential version numbers to control execution order
 4. **Rollback Scripts** - Create rollback scripts for every migration
 5. **Test First** - Always test migrations in development before production
 

@@ -31,8 +31,7 @@ flyway {
     password = project.findProperty('flyway.password') ?: 'user'
     schemas = ['clean_dev']
     locations = [
-        'classpath:db/migration/sql/ddl',
-        'classpath:db/migration/sql/dml',
+        'classpath:db/migration/sql/ddl-dml',
         'classpath:db/migration/sql/dummy'
     ]
     baselineOnMigrate = true
@@ -117,44 +116,6 @@ task flywayRollback {
     }
 }
 
-// Custom task to deploy DDL migrations only
-task flywayMigrateDdl {
-    group = 'flyway'
-    description = 'Executes DDL migrations only (schema changes, table creation)'
-
-    doLast {
-        println "Deploying DDL migrations..."
-        def originalLocations = flyway.locations
-        flyway.locations = ['classpath:db/migration/sql/ddl']
-
-        try {
-            tasks.flywayMigrate.actions.each { it.execute(tasks.flywayMigrate) }
-            println "DDL migrations completed successfully"
-        } finally {
-            flyway.locations = originalLocations
-        }
-    }
-}
-
-// Custom task to deploy DML migrations only
-task flywayMigrateDml {
-    group = 'flyway'
-    description = 'Executes DML migrations only (reference data, corrections)'
-
-    doLast {
-        println "Deploying DML migrations..."
-        def originalLocations = flyway.locations
-        flyway.locations = ['classpath:db/migration/sql/dml']
-
-        try {
-            tasks.flywayMigrate.actions.each { it.execute(tasks.flywayMigrate) }
-            println "DML migrations completed successfully"
-        } finally {
-            flyway.locations = originalLocations
-        }
-    }
-}
-
 // Custom task to deploy dummy/test data migrations only
 task flywayMigrateDummy {
     group = 'flyway'
@@ -183,8 +144,7 @@ task flywayMigrateDdlDml {
         println "Deploying DDL and DML migrations..."
         def originalLocations = flyway.locations
         flyway.locations = [
-            'classpath:db/migration/sql/ddl',
-            'classpath:db/migration/sql/dml'
+            'classpath:db/migration/sql/ddl-dml'
         ]
 
         try {

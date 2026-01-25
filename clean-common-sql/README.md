@@ -7,8 +7,7 @@ This module manages database schema migrations for the Clean Architecture projec
 ```
 clean-common-sql/
 ├── src/main/resources/db/migration/sql/
-│   ├── ddl/          # Data Definition Language (table creation, schema changes)
-│   ├── dml/          # Data Manipulation Language (reference data, corrections)
+│   ├── ddl-dml/      # Data Definition & Manipulation Language (schema and reference data)
 │   ├── dummy/        # Test/development sample data
 │   └── rollback/     # Date-organized rollback scripts
 │       └── {YYMMDD}/ # Rollback scripts organized by migration date
@@ -42,8 +41,6 @@ Where:
 | `./gradlew flywayValidate` | Verify migration integrity | ✅ Yes |
 | `./gradlew flywayMigrate` | Apply all migrations (DDL+DML+dummy) | ⚠️ No |
 | `./gradlew flywayMigrateDdlDml` | Apply DDL+DML only (no dummy) | ✅ **Recommended** |
-| `./gradlew flywayMigrateDdl` | Apply DDL migrations only | ✅ Yes |
-| `./gradlew flywayMigrateDml` | Apply DML migrations only | ✅ Yes |
 | `./gradlew flywayMigrateDummy` | Apply dummy data only | ❌ No |
 | `./gradlew flywayRepair` | Fix migration issues | ⚠️ Careful |
 | `./gradlew flywayBaseline` | Initialize migration tracking | ⚠️ Careful |
@@ -145,7 +142,7 @@ Execute all pending migrations (DDL + DML + dummy data):
 ```
 
 **What it does:**
-- Scans migration folders (ddl/, dml/, dummy/)
+- Scans migration folders (ddl-dml/, dummy/)
 - Applies migrations in version order
 - Updates flyway_schema_history table
 - Validates checksums for existing migrations
@@ -210,31 +207,7 @@ Repairs the schema history table:
 
 ### Custom Migration Commands
 
-#### 1. **Migrate DDL Only**
-Deploy DDL migrations only (schema changes, table creation):
-
-```bash
-./gradlew flywayMigrateDdl
-```
-
-**Use cases:**
-- Apply schema changes first, then data separately
-- Separate structure from data deployment
-- Test DDL scripts in isolation
-
-#### 2. **Migrate DML Only**
-Deploy DML migrations only (reference data, corrections):
-
-```bash
-./gradlew flywayMigrateDml
-```
-
-**Use cases:**
-- Update reference data without schema changes
-- Deploy data corrections independently
-- Test data migrations separately
-
-#### 3. **Migrate Dummy Data Only**
+#### 1. **Migrate Dummy Data Only**
 Deploy dummy/test data only (development sample data):
 
 ```bash
@@ -246,7 +219,7 @@ Deploy dummy/test data only (development sample data):
 - Populate staging with sample data
 - **Never run in production**
 
-#### 4. **Migrate DDL + DML Only**
+#### 2. **Migrate DDL + DML Only**
 Deploy DDL and DML only (excludes dummy data):
 
 ```bash
@@ -260,13 +233,11 @@ Deploy DDL and DML only (excludes dummy data):
 
 ### Command Comparison
 
-| Command | DDL | DML | Dummy | Production Safe |
-|---------|-----|-----|-------|-----------------|
-| `flywayMigrate` | ✅ | ✅ | ✅ | ⚠️ No (includes dummy) |
-| `flywayMigrateDdl` | ✅ | ❌ | ❌ | ✅ Yes |
-| `flywayMigrateDml` | ❌ | ✅ | ❌ | ✅ Yes |
-| `flywayMigrateDummy` | ❌ | ❌ | ✅ | ❌ No (test data) |
-| `flywayMigrateDdlDml` | ✅ | ✅ | ❌ | ✅ **Recommended** |
+| Command | DDL/DML | Dummy | Production Safe |
+|---------|---------|-------|-----------------|
+| `flywayMigrate` | ✅ | ✅ | ⚠️ No (includes dummy) |
+| `flywayMigrateDummy` | ❌ | ✅ | ❌ No (test data) |
+| `flywayMigrateDdlDml` | ✅ | ❌ | ✅ **Recommended** |
 
 ## Rollback System
 
