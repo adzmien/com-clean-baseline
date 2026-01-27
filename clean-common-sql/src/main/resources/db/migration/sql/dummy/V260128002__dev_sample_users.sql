@@ -5,7 +5,6 @@
 -- Date: 2026-01-25
 
 -- Delete existing dummy users first to make this idempotent
-DELETE FROM TBL_CLEAN_USER WHERE created_by = 'SYSTEM';
 
 INSERT INTO TBL_CLEAN_USER (username, domain, status, name1, name2, name3, addr1, addr2, addr3, postcode, state, country, mobile_no, email, created_by, updated_by) VALUES
 ('user001', 'corp.com', 'ACTIVE', 'John', 'Michael', 'Smith', '123 Main St', 'Apt 4B', 'Downtown', '12345', 'California', 'USA', '+1234567890', 'user001@corp.com', 'SYSTEM', 'SYSTEM'),
