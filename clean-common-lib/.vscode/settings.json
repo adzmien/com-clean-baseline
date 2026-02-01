@@ -1,0 +1,21 @@
+{
+    "java.jdt.ls.java.home": "/Users/adzmien/Workspace/binaries/java/jdk-21.0.9+10/Contents/Home",
+    "java.import.gradle.java.home": "/Users/adzmien/Workspace/binaries/java/jdk-21.0.9+10/Contents/Home",
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "automatic",
+    /* Set the default terminal starting path */
+    "terminal.integrated.cwd": "/Users/adzmien/Workspace/code/github/com-clean-baseline/clean-common-lib",
+    /* Forces the Terminal to use Java 21 */
+    "terminal.integrated.env.osx": {
+        "JAVA_HOME": "/Users/adzmien/Workspace/binaries/java/jdk-21.0.9+10/Contents/Home",
+        "PATH": "/Users/adzmien/Workspace/binaries/java/jdk-21.0.9+10/Contents/Home/bin:${env:PATH}"
+    },
+    /* Optional: Specifically identifies this JDK to the Java extension */
+    "java.configuration.runtimes": [
+        {
+            "name": "JavaSE-21",
+            "path": "/Users/adzmien/Workspace/binaries/java/jdk-21.0.9+10/Contents/Home",
+            "default": true
+        }
+    ]
+}
