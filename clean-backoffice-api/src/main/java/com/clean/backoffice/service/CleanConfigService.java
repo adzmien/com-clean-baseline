@@ -2,16 +2,17 @@ package com.clean.backoffice.service;
 
 import java.util.List;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.clean.backoffice.dao.CleanConfigRepository;
 import com.clean.backoffice.dto.OBConfigDTO;
+import com.clean.backoffice.dto.OBConfigFilterDTO;
 import com.clean.backoffice.entity.CleanConfigEntity;
 import com.clean.backoffice.mapper.CleanConfigMapper;
+import com.clean.common.base.dto.OBBaseRequestDTO;
+import com.clean.common.base.dto.OBPageDTO;
 import com.clean.common.base.mapper.BaseEntityMapper;
 import com.clean.common.base.service.BaseJpaService;
 
@@ -28,7 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CleanConfigService extends BaseJpaService<CleanConfigEntity, Long, OBConfigDTO> {
+public class CleanConfigService extends BaseJpaService<CleanConfigEntity, Long, OBConfigDTO, OBConfigFilterDTO> {
 
     private final CleanConfigRepository repository;
     private final CleanConfigMapper mapper;
@@ -47,5 +48,12 @@ public class CleanConfigService extends BaseJpaService<CleanConfigEntity, Long, 
     public List<OBConfigDTO> getAll() {
         log.debug("Fetching all configuration properties");
         return super.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public OBPageDTO<OBConfigDTO> getAll(OBBaseRequestDTO<OBConfigFilterDTO> request) {
+
+        log.debug("Fetching all configuration properties");
+        return super.findAll(request.getReqData());
     }
 }

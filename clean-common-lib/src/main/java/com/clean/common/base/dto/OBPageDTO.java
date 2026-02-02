@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
+import org.springframework.data.domain.Page;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,17 +17,26 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class OBPageDTO<T> implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
     private long totalRecords;
-    private int currentPage;
-    private int pageSize;
-    private String sort;
+
     private int totalPages;
+
+    private int currentPage;
+
+    private int pageSize;
 
     @Builder.Default
     private List<T> dataList = new ArrayList<>();
+
+    public OBPageDTO(Page<T> page) {
+        this.totalRecords = page.getTotalElements();
+        this.totalPages = page.getTotalPages();
+        this.currentPage = page.getNumber() + 1;
+        this.pageSize = page.getSize();
+        this.dataList = page.getContent();
+    }
 }

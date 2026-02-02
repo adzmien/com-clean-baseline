@@ -1,16 +1,19 @@
 package com.clean.backoffice.controller;
 
 import com.clean.backoffice.dto.OBConfigDTO;
+import com.clean.backoffice.dto.OBConfigFilterDTO;
 import com.clean.backoffice.service.CleanConfigService;
+import com.clean.common.base.dto.OBBaseRequestDTO;
 import com.clean.common.base.dto.OBBaseResponseDTO;
+import com.clean.common.base.dto.OBPageDTO;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,58 +37,45 @@ public class CleanConfigController {
 
         private final CleanConfigService cleanConfigService;
 
-        /**
-         * Retrieves all configuration properties.
-         * <p>
-         * This endpoint fetches all records from TBL_CLEAN_CONFIG including
-         * values for all environments (dev, sit, uat, prod, dr).
-         * </p>
-         *
-         * @return ResponseEntity containing OBBaseResponseDTO with list of
-         *         configuration DTOs
-         *
-         * @apiNote
-         * 
-         *          <pre>
-         * GET /backoffice/api/v1/config
-         *
-         * Success Response (200 OK):
-         * {
-         *   "success": true,
-         *   "statusCode": "200",
-         *   "statusDescription": "OK",
-         *   "message": "Retrieved 15 configuration properties successfully",
-         *   "reqData": [
-         *     {
-         *       "id": 1,
-         *       "propKey": "app.feature.enabled",
-         *       "devValue": "true",
-         *       "sitValue": "false",
-         *       "uatValue": "true",
-         *       "prodValue": "false",
-         *       "drValue": "false",
-         *       "description": "Enable new feature",
-         *       "category": "feature-flags",
-         *       "dataType": "boolean",
-         *       "isSensitive": false,
-         *       "createdOn": "2025-01-28T10:00:00",
-         *       "createdBy": "system",
-         *       "updatedOn": "2025-01-28T10:00:00",
-         *       "updatedBy": "system"
-         *     }
-         *   ]
-         * }
-         *
-         * Error Response (500 Internal Server Error):
-         * {
-         *   "success": false,
-         *   "statusCode": "500",
-         *   "statusDescription": "Internal Server Error",
-         *   "message": "Failed to retrieve configuration properties: Connection timeout",
-         *   "reqData": null
-         * }
-         *          </pre>
-         */
+        @PostMapping("/getAll")
+        public ResponseEntity<OBBaseResponseDTO<OBPageDTO<OBConfigDTO>>> getConfigsPaginated(
+                        @RequestBody @Valid OBBaseRequestDTO<OBConfigFilterDTO> request) {
+
+                log.debug("POST /api/v1/config - Retrieving configs with pagination and filters");
+
+                try {
+                        OBPageDTO<OBConfigDTO> page = cleanConfigService.getAll(request);
+
+                        OBBaseResponseDTO<OBPageDTO<OBConfigDTO>> response = OBBaseResponseDTO
+                                        .<OBPageDTO<OBConfigDTO>>builder()
+                                        .success(true)
+                                        .statusCode("200")
+                                        .statusDescription("OK")
+                                        .message(String.format("Retrieved %d of %d configuration properties",
+                                                        page.getDataList().size(), page.getTotalRecords()))
+                                        .reqData(page)
+                                        .build();
+
+                        log.info("Successfully retrieved page {} with {} records out of {} total",
+                                        page.getCurrentPage(), page.getDataList().size(), page.getTotalRecords());
+                        return ResponseEntity.ok(response);
+
+                } catch (Exception e) {
+                        log.error("Error retrieving configuration properties with pagination", e);
+
+                        OBBaseResponseDTO<OBPageDTO<OBConfigDTO>> errorResponse = OBBaseResponseDTO
+                                        .<OBPageDTO<OBConfigDTO>>builder()
+                                        .success(false)
+                                        .statusCode("500")
+                                        .statusDescription("Internal Server Error")
+                                        .message("Failed to retrieve configuration properties: " + e.getMessage())
+                                        .reqData(null)
+                                        .build();
+
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+                }
+        }
+
         @GetMapping("/getAll")
         public ResponseEntity<OBBaseResponseDTO<List<OBConfigDTO>>> getAllConfigs() {
                 log.debug("GET /api/v1/config/getAll - Retrieving all configuration properties");
