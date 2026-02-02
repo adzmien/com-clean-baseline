@@ -21,13 +21,6 @@ public class OBBaseDTO implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private Integer currentPage;
-    private Integer pageSize;
-    private String sort;
-
-    private String mode;
-    private String page;
-
     private Long id;
 
     private LocalDateTime createdOn;

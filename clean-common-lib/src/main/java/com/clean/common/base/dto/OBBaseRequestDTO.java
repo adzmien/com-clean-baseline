@@ -29,6 +29,13 @@ public class OBBaseRequestDTO<T> implements Serializable {
 	private String clientTraceNo;
 	private String serverTraceNo;
 
+	private Integer currentPage;
+	private Integer pageSize;
+	private String sort;
+
+	private String mode;
+	private String page;
+
 	@Valid
 	private T reqData;
 }

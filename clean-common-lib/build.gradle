@@ -24,11 +24,21 @@ repositories {
 }
 
 dependencies {
+    // Spring Data JPA
+    implementation 'org.springframework.data:spring-data-jpa:3.2.1'
+
+    // SLF4J API
+    implementation 'org.slf4j:slf4j-api:2.0.9'
+
     // Jackson
     implementation 'com.fasterxml.jackson.core:jackson-annotations:2.16.1'
 
     // Jakarta Validation API
     implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
+
+    // MapStruct
+    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok:1.18.30'
