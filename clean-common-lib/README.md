@@ -63,7 +63,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.clean:clean-common-lib:0.0.1-SNAPSHOT'
+    implementation 'com.clean:common-lib:0.0.1-SNAPSHOT'
 }
 ```
 
