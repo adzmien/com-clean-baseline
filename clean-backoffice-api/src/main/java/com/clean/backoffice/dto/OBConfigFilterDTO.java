@@ -15,6 +15,6 @@ import lombok.ToString;
 @EqualsAndHashCode(callSuper = true)
 public class OBConfigFilterDTO extends OBPageRequestDTO {
 
-    private String configKey;
+    private String propKey;
     private String category;
 }

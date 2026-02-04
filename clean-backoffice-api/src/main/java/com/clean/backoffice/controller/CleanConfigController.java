@@ -110,4 +110,39 @@ public class CleanConfigController {
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
                 }
         }
+
+        @PostMapping("/findByCriteria")
+        public ResponseEntity<OBBaseResponseDTO<OBConfigDTO>> findByCriteria(
+                        @RequestBody @Valid OBBaseRequestDTO<OBConfigFilterDTO> request) {
+
+                log.debug("POST /api/v1/config/findByCriteria - Finding config by criteria");
+
+                try {
+                        OBConfigDTO config = cleanConfigService.findByCriteria(request.getReqData());
+
+                        OBBaseResponseDTO<OBConfigDTO> response = OBBaseResponseDTO.<OBConfigDTO>builder()
+                                        .success(true)
+                                        .statusCode("200")
+                                        .statusDescription("OK")
+                                        .message(config != null ? "Configuration found" : "No configuration found matching criteria")
+                                        .reqData(config)
+                                        .build();
+
+                        log.info("findByCriteria completed: {}", config != null ? "found" : "not found");
+                        return ResponseEntity.ok(response);
+
+                } catch (Exception e) {
+                        log.error("Error finding configuration by criteria", e);
+
+                        OBBaseResponseDTO<OBConfigDTO> errorResponse = OBBaseResponseDTO.<OBConfigDTO>builder()
+                                        .success(false)
+                                        .statusCode("500")
+                                        .statusDescription("Internal Server Error")
+                                        .message("Failed to find configuration: " + e.getMessage())
+                                        .reqData(null)
+                                        .build();
+
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+                }
+        }
 }

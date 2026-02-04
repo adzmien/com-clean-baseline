@@ -41,11 +41,11 @@ public class DynamicFilterComponent<T> {
     private Specification<T> buildSpecification(Map<String, Object> filters, MatchMode mode) {
         if (filters == null || filters.isEmpty()) {
             log.debug("No filters provided, returning empty specification");
-            return Specification.where(null);
+            return noOp();
         }
 
         log.debug("Building {} specification with {} filter(s)", mode, filters.size());
-        Specification<T> spec = Specification.where(null);
+        Specification<T> spec = noOp();
 
         for (Map.Entry<String, Object> entry : filters.entrySet()) {
             String field = entry.getKey();
