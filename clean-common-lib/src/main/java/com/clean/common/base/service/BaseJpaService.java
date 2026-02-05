@@ -18,17 +18,21 @@ import com.clean.common.base.dto.OBPageRequestDTO;
 import com.clean.common.base.mapper.BaseEntityMapper;
 import com.clean.common.util.PaginationUtils;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public abstract class BaseJpaService<E, D extends OBBaseDTO, R extends OBPageRequestDTO, REPO extends JpaRepository<E, Long> & JpaSpecificationExecutor<E>> {
 
     protected final REPO repository;
     protected final BaseEntityMapper<E, D> mapper;
-    protected final DynamicFilterComponent<E> filterComponent;
+    private final DynamicFilterComponent<E> filterComponent;
+
+    protected BaseJpaService(REPO repository, BaseEntityMapper<E, D> mapper) {
+        this.repository = repository;
+        this.mapper = mapper;
+        this.filterComponent = new DynamicFilterComponent<>();
+    }
 
     public List<D> findAll() {
 
@@ -65,11 +69,6 @@ public abstract class BaseJpaService<E, D extends OBBaseDTO, R extends OBPageReq
     public Optional<D> findByCriteria(R request){
 
         Specification<E> spec = filterComponent.buildExactSpecification(request);
-        if (spec == null) {
-            log.warn("Specification is null for request criteria");
-            return Optional.empty();
-        }
-
         return repository.findOne(spec)
             .map(entity -> {
                 D dto = mapper.toDto(entity);
@@ -81,10 +80,6 @@ public abstract class BaseJpaService<E, D extends OBBaseDTO, R extends OBPageReq
     public List<D> findListByCriteria(R request){
 
         Specification<E> spec = filterComponent.buildSpecification(request);
-        if (spec == null) {
-            log.warn("Specification is null for request criteria");
-            return List.of();
-        }
         List<E> entities = repository.findAll(spec);
         List<D> dtos = mapper.toDtoList(entities);
         log.debug("Found {} records matching criteria", dtos.size());
@@ -94,12 +89,6 @@ public abstract class BaseJpaService<E, D extends OBBaseDTO, R extends OBPageReq
     public OBPageDTO<D> findPageByCriteria(R request){
 
         Specification<E> spec = filterComponent.buildSpecification(request);
-
-        if (spec == null) {
-            log.warn("Specification is null for request criteria");
-            return new OBPageDTO<>();
-        }
-
         Pageable pageable = PaginationUtils.getPageable(request);
         var entityPage = repository.findAll(spec, pageable);
         var dtoPage = entityPage.map(mapper::toDto);
