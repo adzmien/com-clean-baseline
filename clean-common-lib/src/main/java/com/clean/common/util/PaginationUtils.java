@@ -123,7 +123,7 @@ public class PaginationUtils {
             String orderStr = parts.length > 1 ? parts[1].trim() : "asc";
             Sort.Direction direction = parseDirection(orderStr);
 
-            orders.add(new Sort.Order(direction, field));
+            orders.add(new Sort.Order(direction, Objects.requireNonNull(field)));
         }
 
         return orders.isEmpty() ? Sort.unsorted() : Sort.by(orders);

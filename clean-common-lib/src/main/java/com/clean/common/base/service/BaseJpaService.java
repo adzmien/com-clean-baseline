@@ -1,6 +1,7 @@
 package com.clean.common.base.service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
@@ -26,12 +27,12 @@ public abstract class BaseJpaService<E, D extends OBBaseDTO, R extends OBPageReq
 
     protected final REPO repository;
     protected final BaseEntityMapper<E, D> mapper;
-    private final DynamicFilterComponent<E> filterComponent;
+    private final DynamicFilterComponent filterComponent;
 
-    protected BaseJpaService(REPO repository, BaseEntityMapper<E, D> mapper) {
+    protected BaseJpaService(REPO repository, BaseEntityMapper<E, D> mapper, DynamicFilterComponent filterComponent) {
         this.repository = repository;
         this.mapper = mapper;
-        this.filterComponent = new DynamicFilterComponent<>();
+        this.filterComponent = filterComponent;
     }
 
     public List<D> findAll() {
@@ -68,7 +69,7 @@ public abstract class BaseJpaService<E, D extends OBBaseDTO, R extends OBPageReq
 
     public Optional<D> findByCriteria(R request){
 
-        Specification<E> spec = filterComponent.buildExactSpecification(request);
+        Specification<E> spec = Specification.where(filterComponent.<E, R>buildExactSpecification(request));
         return repository.findOne(spec)
             .map(entity -> {
                 D dto = mapper.toDto(entity);
@@ -79,7 +80,7 @@ public abstract class BaseJpaService<E, D extends OBBaseDTO, R extends OBPageReq
 
     public List<D> findListByCriteria(R request){
 
-        Specification<E> spec = filterComponent.buildSpecification(request);
+        Specification<E> spec = Specification.where(filterComponent.<E, R>buildSpecification(request));
         List<E> entities = repository.findAll(spec);
         List<D> dtos = mapper.toDtoList(entities);
         log.debug("Found {} records matching criteria", dtos.size());
@@ -88,7 +89,7 @@ public abstract class BaseJpaService<E, D extends OBBaseDTO, R extends OBPageReq
 
     public OBPageDTO<D> findPageByCriteria(R request){
 
-        Specification<E> spec = filterComponent.buildSpecification(request);
+        Specification<E> spec = Specification.where(filterComponent.<E, R>buildSpecification(request));
         Pageable pageable = PaginationUtils.getPageable(request);
         var entityPage = repository.findAll(spec, pageable);
         var dtoPage = entityPage.map(mapper::toDto);
@@ -135,7 +136,7 @@ public abstract class BaseJpaService<E, D extends OBBaseDTO, R extends OBPageReq
             });
 
         mapper.updateEntityFromDto(dto, existingEntity);
-        var savedEntity = repository.save(existingEntity);
+        var savedEntity = repository.save(Objects.requireNonNull(existingEntity));
         D result = mapper.toDto(savedEntity);
         log.info("Successfully updated record with ID: {}", dtoId);
         return result;

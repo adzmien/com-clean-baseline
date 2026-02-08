@@ -10,6 +10,7 @@ import com.clean.backoffice.dto.OBConfigDTO;
 import com.clean.backoffice.dto.OBConfigFilterDTO;
 import com.clean.backoffice.entity.CleanConfigEntity;
 import com.clean.backoffice.mapper.CleanConfigMapper;
+import com.clean.common.base.component.DynamicFilterComponent;
 import com.clean.common.base.dto.OBBaseRequestDTO;
 import com.clean.common.base.dto.OBPageDTO;
 import com.clean.common.base.service.BaseJpaService;
@@ -29,8 +30,9 @@ public class CleanConfigService extends BaseJpaService<CleanConfigEntity, OBConf
 
     public CleanConfigService(
             CleanConfigRepository repository,
-            CleanConfigMapper mapper) {
-        super(repository, mapper);
+            CleanConfigMapper mapper,
+            DynamicFilterComponent filterComponent) {
+        super(repository, mapper, filterComponent);
     }
 
     @Transactional(readOnly = true)
